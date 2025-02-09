@@ -11,6 +11,6 @@ describe("GET /", () => {
   it("Should return text Response", async () => {
     const req = new Request("http://localhost/");
     const res = await app.fetch(req);
-    expect(await res.text()).toBe("Welcome to Subcription Tracker API!");
+    expect(await res.text()).toBe("Welcome to Subscription Tracker API!");
   });
 });
