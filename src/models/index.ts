@@ -1,3 +1,4 @@
-import { User } from "./user.model";
+import User from "./user.model";
+import Subscription from "./subscription.model";
 
-export { User };
+export { User, Subscription };
