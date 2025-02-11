@@ -431,6 +431,7 @@ describe("Subscription Model Validation In-Memory", () => {
   describe("Renewal date field validation", () => {
     it("should fail validation if renewalDate is before startDate", async () => {
       const today = new Date();
+      const yesterday = new Date(Date.now() - 86400000);
 
       const subscription = new Subscription({
         name: "Subscription Name",
@@ -438,7 +439,7 @@ describe("Subscription Model Validation In-Memory", () => {
         paymentMethod: "card",
         category: "technology",
         startDate: today,
-        renewalDate: new Date(today.setDate(today.getDate() - 1)),
+        renewalDate: yesterday,
         user: user._id,
       });
 
@@ -454,28 +455,28 @@ describe("Subscription Model Validation In-Memory", () => {
       }
     });
 
-    // it("should pass validation if renewalDate is after startDate", async () => {
-    //   const today = new Date();
-    //   const tomorrow = new Date(today.setDate(today.getDate() + 1));
+    it("should pass validation if renewalDate is after startDate", async () => {
+      const today = new Date();
+      const tomorrow = new Date(Date.now() + 86400000);
 
-    //   const subscription = new Subscription({
-    //     name: "Subscription Name",
-    //     price: 100,
-    //     paymentMethod: "card",
-    //     category: "technology",
-    //     startDate: today,
-    //     renewalDate: tomorrow,
-    //     user: user._id,
-    //   });
+      const subscription = new Subscription({
+        name: "Subscription Name",
+        price: 100,
+        paymentMethod: "card",
+        category: "technology",
+        startDate: today,
+        renewalDate: tomorrow,
+        user: user._id,
+      });
 
-    //   try {
-    //     await subscription.validate();
-    //     assert.equal(subscription.renewalDate, tomorrow);
-    //   } catch (err: any) {
-    //     console.error(err);
-    //     assert.fail("Validation should pass");
-    //   }
-    // });
+      try {
+        await subscription.validate();
+        assert.equal(subscription.renewalDate, tomorrow);
+      } catch (err: any) {
+        console.error(err);
+        assert.fail("Validation should pass");
+      }
+    });
   });
 
   describe("User field validation", () => {
