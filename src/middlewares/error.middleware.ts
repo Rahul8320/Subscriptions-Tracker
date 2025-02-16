@@ -1,55 +1,49 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createMiddleware } from "hono/factory";
-import { AppError } from "../types/errors";
+import { AppError, ValidationError } from "../utils";
+import { Context, Next } from "hono";
+import { HTTPException } from "hono/http-exception";
 
-interface ErrorResponse {
-  status: boolean;
-  message: string;
-  error: any;
-}
-
-export const errorMiddleware = createMiddleware(async (c, next) => {
-  try {
-    // If there's no error, continue to next middleware
-    if (!c.error) {
+export const errorMiddleware = createMiddleware(
+  async (c: Context, next: Next) => {
+    try {
       await next();
-      return;
+    } catch (err: any) {
+      console.error(err);
+
+      let errorResponse = new AppError("Internal Server Error", 500);
+
+      // Handle custom AppError instances
+      if (err instanceof AppError) {
+        errorResponse = new AppError(err.message, err.statusCode, err.data);
+      }
+
+      // Handle Hono HTTP exceptions
+      else if (err instanceof HTTPException) {
+        errorResponse = new AppError(err.message, err.status);
+      }
+
+      // Handle MongoDB Validation Errors
+      else if (err.name === "ValidationError") {
+        errorResponse = new ValidationError(err.errors);
+      }
+
+      // Handle MongoDB Duplicate Key Error
+      else if (err.code === 11000) {
+        errorResponse = new AppError("Duplicate key error", 400, {
+          field: Object.keys(err.keyPattern),
+        });
+      }
+
+      // Handle MongoDB Cast Errors (e.g., invalid ObjectId)
+      else if (err.name === "CastError") {
+        errorResponse = new AppError(`Invalid ${err.path}: ${err.value}`, 400);
+      }
+
+      return c.json(
+        { message: errorResponse.message, data: errorResponse.data },
+        errorResponse.statusCode as any
+      );
     }
-
-    let error = c.error;
-    let statusCode = error instanceof AppError ? error.statusCode : 500;
-
-    // Handle mongoose CastError
-    if (error?.name === "CastError") {
-      console.error(error);
-      error = new AppError("Resource not found!", 404, error.message);
-      statusCode = 404;
-    }
-
-    // Handle mongoose ValidationError
-    if (error?.name === "ValidationError") {
-      console.error(error);
-      error = new AppError("Validation error!", 400, error.message);
-      statusCode = 400;
-    }
-
-    // Create the error response
-    const errorResponse: ErrorResponse = {
-      status: false,
-      message: error?.message ?? "Internal server error",
-      error: error instanceof AppError ? error.data ?? {} : error ?? {},
-    };
-
-    c.status(statusCode as any);
-    return c.json(errorResponse);
-  } catch (err: any) {
-    console.error("Error middleware failed:", err);
-
-    c.status(500);
-    return c.json({
-      status: false,
-      message: "Internal server error",
-      error: process.env.NODE_ENV === "development" ? err : {},
-    });
   }
-});
+);
