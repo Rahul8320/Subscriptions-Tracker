@@ -4,13 +4,15 @@
     "dev": "bun run --hot src/index.ts"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.4.3",
     "@types/jsonwebtoken": "^9.0.8",
     "bcryptjs": "^3.0.0",
     "chai": "^5.1.2",
     "hono": "^4.6.20",
     "jsonwebtoken": "^9.0.2",
     "mongodb": "^6.13.0",
-    "mongoose": "^8.10.0"
+    "mongoose": "^8.10.0",
+    "zod": "^3.24.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.20.0",
