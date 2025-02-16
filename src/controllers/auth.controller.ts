@@ -5,7 +5,7 @@ import mongoose from "mongoose";
 import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 import { User } from "../models";
-import { AppError } from "../utils";
+import { AppError, NotFoundError } from "../utils";
 import { JWT_EXPIRES_IN, JWT_SECRET } from "../../configs/env";
 
 export class AuthController {
@@ -17,7 +17,7 @@ export class AuthController {
       const { name, email, password } = await c.req.json();
 
       // check if user is already exists or not
-      const existingUser = await User.findOne({ email });
+      const existingUser = await User.findOne({ email }).lean();
 
       if (existingUser) {
         const error = new AppError("User already exists", 409);
@@ -56,7 +56,12 @@ export class AuthController {
           message: "User created successfully",
           data: {
             token,
-            user: newUsers[0],
+            user: {
+              _id: newUsers[0]._id,
+              name: newUsers[0].name,
+              email: newUsers[0].email,
+              updatedAt: newUsers[0].updatedAt,
+            },
           },
         },
         201
@@ -68,8 +73,49 @@ export class AuthController {
     }
   };
 
-  signIn = (c: Context): HandlerResponse<any> => {
-    return c.text("Sign-In", 200);
+  signIn = async (c: Context) => {
+    const { email, password } = await c.req.json();
+
+    const user = await User.findOne({ email }).lean();
+
+    if (!user) {
+      const error = new NotFoundError("User not found");
+      throw error;
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+
+    if (!isValidPassword) {
+      const error = new AppError("Invalid credentials", 401);
+      throw error;
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id,
+      },
+      JWT_SECRET as jwt.Secret,
+      {
+        expiresIn: JWT_EXPIRES_IN,
+      } as jwt.SignOptions
+    );
+
+    return c.json(
+      {
+        success: true,
+        message: "User signed in successfully",
+        data: {
+          token,
+          user: {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            updatedAt: user.updatedAt,
+          },
+        },
+      },
+      200
+    );
   };
 
   signOut = (c: Context): HandlerResponse<any> => {
