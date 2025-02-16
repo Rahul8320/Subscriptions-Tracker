@@ -1,9 +1,15 @@
 import { Hono } from "hono";
+import { poweredBy } from "hono/powered-by";
+import { logger } from "hono/logger";
 import { PORT } from "../configs/env";
 import { authRoutes } from "./routes";
 import { connectToDB } from "./db/mongodb";
+import { errorMiddleware } from "./middlewares";
 
 const app = new Hono();
+
+app.use(poweredBy());
+app.use(logger());
 
 app.route("/api/v1/auth", authRoutes);
 
@@ -12,6 +18,8 @@ app.get("/", (c) => {
 });
 
 connectToDB();
+
+app.use(errorMiddleware);
 
 export default {
   port: PORT,

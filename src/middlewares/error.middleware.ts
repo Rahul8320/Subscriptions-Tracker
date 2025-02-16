@@ -1,40 +1,55 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createMiddleware } from "hono/factory";
+import { AppError } from "../types/errors";
+
+interface ErrorResponse {
+  status: boolean;
+  message: string;
+  error: any;
+}
 
 export const errorMiddleware = createMiddleware(async (c, next) => {
   try {
-    let error = c.error;
-    let statusCode: number = 500;
-
-    if (error === undefined || error === null) {
+    // If there's no error, continue to next middleware
+    if (!c.error) {
       await next();
+      return;
     }
 
-    // Mongoose bad ObjectId error
-    if (error?.name === "CastError") {
-      const message = "Resource not found!";
+    let error = c.error;
+    let statusCode = error instanceof AppError ? error.statusCode : 500;
 
-      error = new Error(message);
+    // Handle mongoose CastError
+    if (error?.name === "CastError") {
+      console.error(error);
+      error = new AppError("Resource not found!", 404, error.message);
       statusCode = 404;
     }
 
-    return c.json(
-      {
-        status: false,
-        message: c.error?.message ?? "Internal server error",
-        error: c.error ?? {},
-      },
-      statusCode
-    );
+    // Handle mongoose ValidationError
+    if (error?.name === "ValidationError") {
+      console.error(error);
+      error = new AppError("Validation error!", 400, error.message);
+      statusCode = 400;
+    }
+
+    // Create the error response
+    const errorResponse: ErrorResponse = {
+      status: false,
+      message: error?.message ?? "Internal server error",
+      error: error instanceof AppError ? error.data ?? {} : error ?? {},
+    };
+
+    c.status(statusCode as any);
+    return c.json(errorResponse);
   } catch (err: any) {
-    console.error(err);
-    return c.json(
-      {
-        status: false,
-        message: c.error?.message ?? err.message,
-        error: c.error ?? err,
-      },
-      500
-    );
+    console.error("Error middleware failed:", err);
+
+    c.status(500);
+    return c.json({
+      status: false,
+      message: "Internal server error",
+      error: process.env.NODE_ENV === "development" ? err : {},
+    });
   }
 });
