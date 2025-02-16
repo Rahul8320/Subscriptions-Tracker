@@ -10,7 +10,6 @@ const app = new Hono();
 
 app.use(poweredBy());
 app.use(logger());
-app.use(errorMiddleware);
 
 app.route("/api/v1/auth", authRoutes);
 
@@ -19,6 +18,8 @@ app.get("/", (c) => {
 });
 
 connectToDB();
+
+app.onError(errorMiddleware);
 
 export default {
   port: PORT,
