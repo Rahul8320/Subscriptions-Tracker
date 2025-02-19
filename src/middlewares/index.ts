@@ -1,3 +1,4 @@
 import { errorMiddleware } from "./error.middleware";
+import { authorize } from "./auth.middleware";
 
-export { errorMiddleware };
+export { errorMiddleware, authorize };
