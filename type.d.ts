@@ -4,5 +4,7 @@ declare module "bun" {
     DB_URI: string;
     JWT_SECRET: string;
     JWT_EXPIRES_IN: string;
+    ARCJET_KEY: string;
+    ARCJET_ENV: string;
   }
 }

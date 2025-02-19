@@ -4,12 +4,13 @@ import { logger } from "hono/logger";
 import { PORT } from "../configs/env";
 import { authRoutes, userRoutes } from "./routes";
 import { connectToDB } from "./db/mongodb";
-import { errorMiddleware } from "./middlewares";
+import { arcjetMiddleware, errorMiddleware } from "./middlewares";
 
 const app = new Hono();
 
 app.use(poweredBy());
 app.use(logger());
+app.use(arcjetMiddleware);
 
 app.route("/api/v1/auth", authRoutes);
 app.route("/api/v1/user", userRoutes);
